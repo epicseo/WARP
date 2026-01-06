@@ -252,6 +252,12 @@ SkipLub:
             author : Andrei Karas (4144) , X-EcutiOnner
             desc : Makes the client skip loading Towninfo.lub file
 
+        - SkipPetEvolution:
+            title : Skip PetEvolution lub
+            recommend : no
+            author : X-EcutiOnner
+            desc : Makes the client skip loading PetEvolutionCln.lub file, disabling pet evolution functionality
+
 ReadTxtFile:
     title : READ .txt FILE
     mutex : false

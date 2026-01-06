@@ -152,3 +152,55 @@ SkipTownInfo = function(_)
 ///
 SkipTownInfo.validate = () =>
 	Exe.FindText("System/Towninfo.lub", PHYSICAL) > 0;
+
+///
+/// \brief Modify PetEvolution loading code to skip calling the function which performs the loading process.
+///
+SkipPetEvolution = function(_)
+{
+	$$(_, 1.1, `Find the string 'CPetEvolutionMgr file Init'`)
+    const strAddr = Exe.FindText("CPetEvolutionMgr file Init");
+    if (strAddr < 0)
+        throw Error("Init string missing");
+
+    $$(_, 1.2, `Use it to find PetEvolution loading code`)
+	const pushZero = Exe.Version > 10 ? PUSH_0 : PUSH(EBX);
+	const code =
+		TEST(AL, AL)  //test al, al ; result of the function which loads the pet evolution
+	+	JNZ(WCp)      //jnz short _skip
+	+	pushZero      //push 0 OR ebx
+	+	PUSH(POS4WC)  //push immA
+	+	PUSH(strAddr) //push offset "CPetEvolutionMgr file Init"
+	+	pushZero      //push 0 OR ebx
+	;
+
+	const addr = Exe.FindHex(code);
+	if (addr < 0)
+		throw Error("Pattern not found");
+
+	$$(_, 2.1, `Find the CALL before it`)
+	const callAddr = Exe.GetUint8(addr - 6) === 0x8B
+		? (addr - 11)
+		: (addr - 5)
+		;
+
+	if (Exe.GetUint8(callAddr) !== 0xE8)
+		throw Error("CALL not found");
+
+	$$(_, 2.2, `Change the CALL to make EAX 0`)
+	Exe.SetHex(callAddr,
+		XOR(EAX, EAX)    //xor eax, eax
+	+	NOP3             //3 byte nop
+	);
+
+	$$(_, 2.3, `Change the JNZ to JMP`)
+	Exe.SetJMP(addr + 2);
+
+    return true;
+};
+
+///
+/// \brief Disable for Unsupported Clients - Check for the init string
+///
+SkipPetEvolution.validate = () =>
+	Exe.FindText("CPetEvolutionMgr file Init", PHYSICAL) > 0;

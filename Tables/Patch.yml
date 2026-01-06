@@ -316,6 +316,7 @@
 335 : EnableHttpEmblem
 336 : NoEquipPreview
 337 : CustomAdvAgencyLimits
+339 : SkipPetEvolution
 
 #--- To be implemented in WARP ---
 # 338 : ValidateClient
