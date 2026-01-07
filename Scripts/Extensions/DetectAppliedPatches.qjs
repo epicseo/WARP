@@ -143,6 +143,53 @@ DetectAppliedPatches = function(_)
         ]
     };
 
+    // Patches that conflict with each other (only pick ONE from each group)
+    const conflictGroups = [
+        ["NoWalkDelay", "CustomWalkDelay"],
+        ["HideCashShop", "ShowCashShop"],
+        ["HideRoulette", "ShowRoulette"],
+        ["UseOldLogin", "UseSSOLogin", "RestoreLoginWindow"],
+        ["HideLicense", "ShowLicense"],
+        ["HideOldButtons", "HideNewButtons", "ShowNewButtons"],
+        ["LowCamAngle", "MediumCamAngle", "HighCamAngle"],
+        ["Zoom25Percent", "Zoom50Percent", "Zoom75Percent", "ZoomMax"],
+        ["UnlimitedChatRepeat", "LimitedChatRepeat"],
+        ["Idle2NormalPriority", "Normal2HighPriority"],
+        ["RestoreIcon", "CustomIcon"],
+        ["OnlyFirstBG", "OnlySecondBG", "AlwaysOfficialBG"],
+        ["DisableTraitStatusButton", "HideTraitStatusButton"],
+        ["ShowResButton", "HideResButton"],
+        ["NoAutoFollow", "RestoreAutoFollow", "DecrAFDelay", "CustomAFStopDelay"]
+    ];
+
+    // Recommended safe patches for Pre-Renewal 2018 clients
+    const recommendedPreRenewal2018 = [
+        // PROTECTION - Important
+        "NoHShield", "NoGGuard", "NoCDefender",
+        // DATA - Safe defaults
+        "DataFolderFirst", "PlainTextDesc", "CustomDLL", "NoMapInfo",
+        "TranslateClient", "SkipSignBoard", "GRFsFromIni",
+        // UI - Quality of life
+        "NoSwearFilter", "FixChatAt", "NoHourly", "EnableFlagEmotes",
+        "AllowSpaceInGName", "NoHelpMsg", "CloseCutinOnEsc",
+        "RestoreChatFocus", "ShortcutForAll", "InsensitiveStorageSearch",
+        "NoGravityAds", "NoGravityLogo",
+        // CHARACTER
+        "ShowBGEmblem", "RestoreAutoFollow", "ShowGvGDamage",
+        // WINDOW
+        "ShowExpNumbers", "CancelToLogin",
+        // CLIENT
+        "NoEarthQuake", "NoWavyScreen", "NoBlindness",
+        "EnableWho", "EnableShowName",
+        // SOUND
+        "Enable44kHzAudio", "AutoMute",
+        // ENVIRONMENT
+        "NoFilenameCheck", "UseDefaultBrowser", "NoMultiWindow",
+        "EnableSysMenu",
+        // NETWORK
+        "EnableDnsSupport", "NoNagle", "EnableHttpEmblem"
+    ];
+
     $$(_, 2.2, `Write header`)
     fp.WriteLine("=".repeat(80));
     fp.WriteLine("  WARP Patch Detection Report");
@@ -353,6 +400,88 @@ DetectAppliedPatches = function(_)
         }
         fp.WriteLine("");
         fp.WriteLine("  TOTAL: " + results.errors.length + " patches had errors during detection");
+    }
+
+    $$(_, 4.5, `Write conflict warnings`)
+    fp.WriteLine("");
+    fp.WriteLine("!".repeat(80));
+    fp.WriteLine("  CONFLICT WARNINGS - Only pick ONE from each group!");
+    fp.WriteLine("!".repeat(80));
+    for (const group of conflictGroups)
+    {
+        // Check if multiple patches from same group are available
+        const available = group.filter(p =>
+            results.found.some(r => r.name === p) ||
+            results.notFound.some(r => r.name === p)
+        );
+        if (available.length > 1)
+        {
+            fp.WriteLine("");
+            fp.WriteLine("  CONFLICT GROUP: " + group.join(" vs "));
+            for (const p of available)
+            {
+                const isPatched = results.notFound.some(r => r.name === p);
+                fp.WriteLine("    " + (isPatched ? "[X]" : "[ ]") + " " + p);
+            }
+        }
+    }
+    fp.WriteLine("");
+
+    $$(_, 4.6, `Write recommended patches for pre-renewal`)
+    const isPre2019 = Exe.BuildDate < 20190000;
+    const isPreRenewal = !ROC.IsRenewal;
+
+    if (isPre2019 || isPreRenewal)
+    {
+        fp.WriteLine("");
+        fp.WriteLine("#".repeat(80));
+        fp.WriteLine("  RECOMMENDED PATCHES FOR PRE-RENEWAL / OLDER CLIENTS");
+        fp.WriteLine("#".repeat(80));
+        fp.WriteLine("");
+        fp.WriteLine("  Based on your client (BuildDate: " + Exe.BuildDate + ", Renewal: " + (ROC.IsRenewal ? "YES" : "NO") + ")");
+        fp.WriteLine("  Here are SAFE patches you should consider:");
+        fp.WriteLine("");
+
+        let recAvailable = [];
+        let recAlreadyApplied = [];
+        let recNotAvailable = [];
+
+        for (const name of recommendedPreRenewal2018)
+        {
+            if (results.found.some(r => r.name === name))
+                recAvailable.push(name);
+            else if (results.notFound.some(r => r.name === name))
+                recAlreadyApplied.push(name);
+            else
+                recNotAvailable.push(name);
+        }
+
+        if (recAvailable.length > 0)
+        {
+            fp.WriteLine("  [ ] RECOMMENDED - Can Apply:");
+            for (const name of recAvailable)
+                fp.WriteLine("      - " + name);
+            fp.WriteLine("");
+        }
+
+        if (recAlreadyApplied.length > 0)
+        {
+            fp.WriteLine("  [X] RECOMMENDED - Already Applied:");
+            for (const name of recAlreadyApplied)
+                fp.WriteLine("      - " + name);
+            fp.WriteLine("");
+        }
+
+        if (recNotAvailable.length > 0)
+        {
+            fp.WriteLine("  [-] RECOMMENDED - Not Available for this client:");
+            for (const name of recNotAvailable)
+                fp.WriteLine("      - " + name);
+            fp.WriteLine("");
+        }
+
+        fp.WriteLine("  TIP: Search these patch names in WARP to find and apply them.");
+        fp.WriteLine("");
     }
 
     $$(_, 5.1, `Write summary`)
